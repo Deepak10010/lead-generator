@@ -1,6 +1,8 @@
 :root {
   --bg: #0f1115;
   --panel: #181b22;
+  --panel-2: #14171d;
+  --input-bg: #0f1115;
   --line: #2a2f3a;
   --text: #e6e8eb;
   --muted: #9aa3b2;
@@ -8,6 +10,20 @@
   --lead: #ff6b6b;
   --ok: #34d399;
   --warn: #fbbf24;
+}
+
+html[data-theme="light"] {
+  --bg: #ffffff;
+  --panel: #f7f8fa;
+  --panel-2: #eef1f5;
+  --input-bg: #ffffff;
+  --line: #e2e6ec;
+  --text: #1c2330;
+  --muted: #5b6472;
+  --accent: #2563eb;
+  --lead: #dc2626;
+  --ok: #047857;
+  --warn: #b45309;
 }
 
 * { box-sizing: border-box; }
@@ -18,7 +34,29 @@ body {
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
+  transition: background 0.2s ease, color 0.2s ease;
 }
+
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+.theme-toggle:hover { border-color: var(--accent); }
+.theme-toggle .icon { font-size: 1rem; line-height: 1; }
 
 header {
   padding: 2rem 1.5rem 1rem;
@@ -43,7 +81,7 @@ main { padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
 .field label { font-size: 0.8rem; color: var(--muted); }
 .field input {
   padding: 0.55rem 0.7rem;
-  background: #0f1115;
+  background: var(--input-bg);
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
@@ -62,6 +100,15 @@ main { padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
 .source-badge { color: var(--muted); font-size: 0.8rem; margin-left: auto; }
 
 .results { margin-top: 1.5rem; }
+.empty-state {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+}
+.empty-state p { margin: 0.3rem 0; }
+.empty-state .hint { color: var(--muted); font-size: 0.9rem; }
 .summary { margin-bottom: 0.75rem; color: var(--muted); }
 .summary .lead-count { color: var(--lead); }
 .downloads { margin-left: 0.5rem; }
@@ -99,7 +146,7 @@ th, td {
   font-size: 0.9rem;
   vertical-align: top;
 }
-th { background: #14171d; color: var(--muted); font-weight: 600; }
+th { background: var(--panel-2); color: var(--muted); font-weight: 600; }
 tr:last-child td { border-bottom: none; }
 tr.is-lead { background: rgba(255, 107, 107, 0.06); }
 td a { color: var(--accent); word-break: break-all; }

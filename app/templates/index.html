@@ -4,9 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lead Generator</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=3" />
+  <script>
+    // Set theme before paint to avoid a flash. Saved choice wins; otherwise OS preference.
+    (function () {
+      try {
+        var saved = localStorage.getItem("theme");
+        var prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+        document.documentElement.setAttribute("data-theme", saved || (prefersLight ? "light" : "dark"));
+      } catch (e) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      }
+    })();
+  </script>
 </head>
 <body>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle light and dark theme">
+    <span class="icon" id="themeIcon">🌙</span>
+    <span id="themeLabel">Dark</span>
+  </button>
   <header>
     <h1>Lead Generator</h1>
     <p class="tagline">Find businesses and flag the ones that need a better web presence.</p>
@@ -28,6 +44,16 @@
 
     {% if leads is not none %}
       <section class="results">
+        {% if total == 0 %}
+        <div class="empty-state">
+          <p>No businesses found for <strong>{{ category }}</strong> in <strong>{{ city }}</strong>.</p>
+          <p class="hint">
+            Try a broader or differently-worded category (e.g. "{{ category.split()[0] }}"),
+            check the city spelling, or switch the data source. With the OpenStreetMap
+            source, coverage depends on what volunteers have mapped in that area.
+          </p>
+        </div>
+        {% else %}
         <div class="summary">
           <strong>{{ total }}</strong> businesses found in {{ city }} ·
           <strong class="lead-count">{{ lead_count }}</strong> flagged as leads
@@ -72,6 +98,7 @@
             {% endfor %}
           </tbody>
         </table>
+        {% endif %}
       </section>
 
       <script>
@@ -93,5 +120,29 @@
       </script>
     {% endif %}
   </main>
+
+  <script>
+    (function () {
+      var btn = document.getElementById("themeToggle");
+      var icon = document.getElementById("themeIcon");
+      var label = document.getElementById("themeLabel");
+
+      function render(theme) {
+        var isLight = theme === "light";
+        icon.textContent = isLight ? "☀️" : "🌙";
+        label.textContent = isLight ? "Light" : "Dark";
+      }
+
+      render(document.documentElement.getAttribute("data-theme") || "dark");
+
+      btn.addEventListener("click", function () {
+        var current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+        var next = current === "light" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        render(next);
+      });
+    })();
+  </script>
 </body>
 </html>

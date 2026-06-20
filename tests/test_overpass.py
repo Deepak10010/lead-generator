@@ -27,9 +27,21 @@ def test_unknown_category_falls_back_to_fuzzy_keys():
     assert any('["shop"~"florist",i]' == f for f in filters)
 
 
-def test_fallback_strips_quotes_to_avoid_injection():
-    filters = osm_filters('rest"aurant')
-    assert all('"aurant' not in f.replace('~"', "").replace('",i', "") for f in filters)
+def test_fallback_regex_value_is_safe():
+    # User punctuation must not leak into the regex value (would break the query).
+    import re
+
+    filters = osm_filters('rest"aurant; out;')
+    for f in filters:
+        value = re.search(r'~"([^"]*)",i', f).group(1)
+        assert re.fullmatch(r"[a-z0-9|]+", value), f"unsafe regex value: {value!r}"
+
+
+def test_multiword_category_drops_filler_words():
+    # "music classes" is mapped, but an unmapped phrase keeps only keywords.
+    filters = osm_filters("photography classes")
+    value = filters[0].split('~"')[1].split('",i')[0]
+    assert value == "photography"  # "classes" filler dropped
 
 
 _NOMINATIM = [{"boundingbox": ["12.8", "13.1", "77.4", "77.8"]}]

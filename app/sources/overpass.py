@@ -16,6 +16,8 @@ servers — keep volume modest and send a real User-Agent.
 
 from __future__ import annotations
 
+import re
+
 import httpx
 
 from app.config import settings
@@ -76,6 +78,16 @@ CATEGORY_TAGS: dict[str, list[tuple[str, str]]] = {
     "veterinary": [("amenity", "veterinary")],
     "library": [("amenity", "library")],
     "cinema": [("amenity", "cinema")],
+    # Education / classes / coaching (common lead targets).
+    "music school": [("amenity", "music_school")],
+    "dance school": [("amenity", "dancing_school"), ("leisure", "dance")],
+    "driving school": [("amenity", "driving_school")],
+    "language school": [("amenity", "language_school")],
+    "coaching": [("amenity", "prep_school")],
+    "tuition": [("amenity", "prep_school")],
+    "kindergarten": [("amenity", "kindergarten")],
+    "university": [("amenity", "university")],
+    "yoga": [("leisure", "fitness_centre"), ("sport", "yoga")],
 }
 
 # Synonyms -> a canonical key already present in CATEGORY_TAGS.
@@ -107,10 +119,37 @@ SYNONYMS: dict[str, str] = {
     "lawyers": "lawyer",
     "advocate": "lawyer",
     "banks": "bank",
+    # Education / classes phrasings.
+    "music classes": "music school",
+    "music lessons": "music school",
+    "music academy": "music school",
+    "dance classes": "dance school",
+    "dance academy": "dance school",
+    "dancing classes": "dance school",
+    "driving classes": "driving school",
+    "driving lessons": "driving school",
+    "language classes": "language school",
+    "coaching classes": "coaching",
+    "coaching center": "coaching",
+    "coaching centre": "coaching",
+    "tuition classes": "tuition",
+    "tuition center": "tuition",
+    "yoga classes": "yoga",
+    "yoga studio": "yoga",
 }
 
 # Keys searched in the fuzzy fallback for unmapped categories.
-_FALLBACK_KEYS = ["amenity", "shop", "craft", "office", "leisure", "tourism", "healthcare"]
+_FALLBACK_KEYS = ["amenity", "shop", "craft", "office", "leisure", "tourism", "healthcare", "sport"]
+
+# Generic words that carry no OSM meaning — dropped so the keyword survives,
+# e.g. "music classes" -> "music", "car wash service" -> "car wash".
+_STOPWORDS = {
+    "class", "classes", "lesson", "lessons", "course", "courses", "training",
+    "tuition", "coaching", "tutorial", "tutorials", "center", "centre", "centers",
+    "centres", "shop", "shops", "store", "stores", "service", "services",
+    "institute", "academy", "school", "schools", "studio", "studios", "company",
+    "business", "businesses", "near", "me", "in", "the", "and", "of", "for",
+}
 
 
 def osm_filters(category: str) -> list[str]:
@@ -129,10 +168,15 @@ def osm_filters(category: str) -> list[str]:
     if tags:
         return [f'["{k}"="{v}"]' for k, v in tags]
 
-    # Fallback: fuzzy match the category word against common keys' values.
-    term = norm[:-1] if norm.endswith("s") else norm
-    safe = term.replace('"', "").replace("\\", "")
-    return [f'["{key}"~"{safe}",i]' for key in _FALLBACK_KEYS]
+    # Fallback: pull the meaningful keyword(s) and fuzzy-match them across the
+    # common keys. OSM values use underscores (e.g. music_school), so we match
+    # individual words rather than the raw phrase, and drop generic filler words.
+    words = [w for w in re.split(r"[^a-z0-9]+", norm) if w]
+    keywords = [w for w in words if w not in _STOPWORDS] or words
+    # Loosely singularize each token (matches "bakers" -> "baker", etc.).
+    tokens = {w[:-1] if len(w) > 3 and w.endswith("s") else w for w in keywords}
+    pattern = "|".join(sorted(tokens))  # tokens are [a-z0-9] only, regex-safe
+    return [f'["{key}"~"{pattern}",i]' for key in _FALLBACK_KEYS]
 
 
 def _build_query(filters: list[str], bbox: tuple[float, float, float, float], limit: int) -> str:
