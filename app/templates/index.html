@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lead Generator</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Lead Generator</h1>
+    <p class="tagline">Find businesses and flag the ones that need a better web presence.</p>
+  </header>
+
+  <main>
+    <form class="search" method="post" action="/search">
+      <div class="field">
+        <label for="city">City</label>
+        <input id="city" name="city" value="{{ city or 'Bangalore' }}" required />
+      </div>
+      <div class="field">
+        <label for="category">Category</label>
+        <input id="category" name="category" value="{{ category or 'Restaurants' }}" required />
+      </div>
+      <button type="submit">Find leads</button>
+      <span class="source-badge">source: {{ source }}</span>
+    </form>
+
+    {% if leads is not none %}
+      <section class="results">
+        <div class="summary">
+          <strong>{{ total }}</strong> businesses found in {{ city }} ·
+          <strong class="lead-count">{{ lead_count }}</strong> flagged as leads
+          <span class="downloads">
+            <a href="/export/{{ search_id }}.csv">Download CSV</a>
+            <a href="/export/{{ search_id }}.xlsx">Download Excel</a>
+          </span>
+        </div>
+
+        <div class="filters" role="group" aria-label="Filter results">
+          <button type="button" class="active" data-filter="all">All ({{ total }})</button>
+          <button type="button" data-filter="lead">Leads only ({{ lead_count }})</button>
+          <button type="button" data-filter="none">No website</button>
+          <button type="button" data-filter="broken">Broken</button>
+          <button type="button" data-filter="not_mobile_friendly">Not mobile-friendly</button>
+        </div>
+
+        <table id="results-table">
+          <thead>
+            <tr>
+              <th>Name</th><th>Address</th><th>Phone</th><th>Website</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lead in leads %}
+              <tr data-status="{{ lead.check.status }}" data-lead="{{ '1' if lead.is_lead else '0' }}"
+                  class="{{ 'is-lead' if lead.is_lead else '' }}">
+                <td>{{ lead.business.name }}</td>
+                <td>{{ lead.business.address }}</td>
+                <td>{{ lead.business.phone or '—' }}</td>
+                <td>
+                  {% if lead.business.website %}
+                    <a href="{{ lead.business.website }}" target="_blank" rel="noopener">
+                      {{ lead.business.website }}</a>
+                  {% else %}—{% endif %}
+                </td>
+                <td>
+                  <span class="badge badge-{{ lead.check.status }}"
+                        title="{{ lead.check.reason }}">{{ lead.check.label }}</span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </section>
+
+      <script>
+        const buttons = document.querySelectorAll(".filters button");
+        const rows = document.querySelectorAll("#results-table tbody tr");
+        buttons.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            buttons.forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            const f = btn.dataset.filter;
+            rows.forEach((row) => {
+              let show = true;
+              if (f === "lead") show = row.dataset.lead === "1";
+              else if (f !== "all") show = row.dataset.status === f;
+              row.style.display = show ? "" : "none";
+            });
+          });
+        });
+      </script>
+    {% endif %}
+  </main>
+</body>
+</html>
